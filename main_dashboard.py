@@ -25,7 +25,7 @@ class DashboardConfig:
     
     @staticmethod
     def apply_custom_css():
-        """Apply custom CSS for dark mode and dynamic section heights - Updated for 4 items"""
+        """Apply custom CSS for dark mode and dynamic section heights - Updated for 3 items (Districts) / 2 items (Sectors)"""
         st.markdown("""
         <style>
             .main .block-container {
@@ -82,20 +82,20 @@ class DashboardConfig:
                 margin-bottom: 1rem;
                 border: 1px solid #444;
             }
-            /* Base equal height overview boxes - increased height for 4 items */
+            /* Base equal height overview boxes - adjusted height for 3 items (Districts) / 2 items (Sectors) */
             .overview-container {
                 display: grid;
                 grid-template-columns: repeat(3, 1fr);
                 gap: 1rem;
-                grid-auto-rows: minmax(320px, auto);
+                grid-auto-rows: minmax(280px, auto);
                 margin-bottom: 1.5rem;
             }
-            /* Dynamic height adjustment for districts vs sectors - both need more height for 4 items */
+            /* Dynamic height adjustment for districts vs sectors */
             .overview-container.districts {
-                grid-auto-rows: minmax(400px, auto);
+                grid-auto-rows: minmax(320px, auto);
             }
             .overview-container.sectors {
-                grid-auto-rows: minmax(350px, auto);
+                grid-auto-rows: minmax(280px, auto);
             }
             /* Trend filter container */
             .trend-filter-container {
@@ -459,7 +459,7 @@ class DashboardUI:
     # === PRIVATE HELPER METHODS ===
     
     def _calculate_overview_metrics(self, data) -> dict:
-        """Calculate overview metrics for current dashboard type"""
+        """Calculate overview metrics for current dashboard type - REMOVED avg_population"""
         if data is None or data.empty:
             return {}
         
@@ -468,12 +468,12 @@ class DashboardUI:
             total_population = data['Population'].sum()
             incidence = (total_cases / total_population * 1000) if total_population > 0 else 0
             severe_cases = data['Severe cases/Deaths'].sum()
-            avg_population = data['Population'].mean()
+            # REMOVED avg_population calculation
             return {
                 'total_cases': total_cases, 
                 'incidence': incidence, 
-                'severe_cases': severe_cases,
-               # 'avg_population': avg_population
+                'severe_cases': severe_cases
+                # REMOVED 'avg_population': avg_population
             }
         else:
             simple_cases = data['Simple malaria cases'].sum()
@@ -539,22 +539,22 @@ class DashboardUI:
         )
     
     def _build_status_content(self, current_data, previous_data) -> str:
-        """Build content for status section with color-coded elements and consistent spacing"""
+        """Build content for status section with color-coded elements and consistent spacing - REMOVED avg_population"""
         current_metrics = self._calculate_overview_metrics(current_data)
         previous_metrics = self._calculate_overview_metrics(previous_data)
         
         content = ""
         
         if self.dashboard_type == "Districts":
-            # 4 metrics for districts - keep equal box sizes
+            # ONLY 3 metrics for districts now - REMOVED avg_population
             metrics_config = [
                 ("🦟", "Total Cases", "total_cases", ":,.0f", "#ff6b6b"),
                 ("📈", "Incidence", "incidence", ":.1f", "#4ecdc4"),
-                ("⚠️", "Severe Cases", "severe_cases", ":,.0f", "#ff8c42"),
-                ("📊", "Avg Population", "avg_population", ":,.0f", "#95a5a6")
+                ("⚠️", "Severe Cases", "severe_cases", ":,.0f", "#ff8c42")
+                # REMOVED ("📊", "Avg Population", "avg_population", ":,.0f", "#95a5a6")
             ]
         else:
-            # Only 2 metrics for sectors - removed population completely
+            # Only 2 metrics for sectors
             metrics_config = [
                 ("🦟", "Simple Cases", "simple_cases", ":,.0f", "#ff6b6b"),
                 ("📊", "Incidence", "incidence", ":.1f", "#4ecdc4")
@@ -563,14 +563,9 @@ class DashboardUI:
         for i, (icon, label, key, fmt, value_color) in enumerate(metrics_config):
             current_val = current_metrics.get(key, 0) if current_metrics else 0
             
-            # Handle average population for districts
-            if key == "avg_population":
-                current_val = current_data['Population'].mean() if current_data is not None and not current_data.empty else 0
-                delta = ""  # No delta for average population
-                delta_color = "#ffffff"
-            else:
-                delta = self._calculate_delta(current_metrics, previous_metrics, key, fmt)
-                delta_color = self._get_delta_color(current_metrics, previous_metrics, key, key)
+            # Calculate delta normally for all metrics
+            delta = self._calculate_delta(current_metrics, previous_metrics, key, fmt)
+            delta_color = self._get_delta_color(current_metrics, previous_metrics, key, key)
             
             # No border for last item
             border_style = "" if i == len(metrics_config) - 1 else "border-bottom: 1px solid rgba(255,255,255,0.1);"
