@@ -25,7 +25,7 @@ class DashboardConfig:
     
     @staticmethod
     def apply_custom_css():
-        """Apply custom CSS for dark mode and color-coded sections"""
+        """Apply custom CSS for dark mode and dynamic section heights - Updated for 4 items"""
         st.markdown("""
         <style>
             .main .block-container {
@@ -82,6 +82,38 @@ class DashboardConfig:
                 margin-bottom: 1rem;
                 border: 1px solid #444;
             }
+            /* Base equal height overview boxes - increased height for 4 items */
+            .overview-container {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 1rem;
+                grid-auto-rows: minmax(320px, auto);
+                margin-bottom: 1.5rem;
+            }
+            /* Dynamic height adjustment for districts vs sectors - both need more height for 4 items */
+            .overview-container.districts {
+                grid-auto-rows: minmax(400px, auto);
+            }
+            .overview-container.sectors {
+                grid-auto-rows: minmax(350px, auto);
+            }
+            /* Trend filter container */
+            .trend-filter-container {
+                background-color: #2a2a2a;
+                border-radius: 8px;
+                padding: 0.8rem;
+                margin-bottom: 1rem;
+                border: 1px solid #555;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            }
+            .trend-filter-container h4 {
+                margin-top: 0;
+                margin-bottom: 0.5rem;
+                color: #4CAF50;
+                font-size: 0.9rem;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
         </style>
         """, unsafe_allow_html=True)
 
@@ -94,42 +126,51 @@ class DashboardUI:
         7: "July", 8: "August", 9: "September", 10: "October", 11: "November", 12: "December"
     }
     
-    # Reusable HTML templates
+    # Updated HTML templates with fixed heights and better spacing
     SECTION_TEMPLATE = """
-    <div style="background: linear-gradient(135deg, {bg_start} 0%, {bg_end} 100%); 
-                border: 2px solid {border_color}; border-radius: 12px; padding: 1.2rem; color: white;">
-        <div style="font-size: 1.1rem; font-weight: bold; margin-bottom: 0.8rem; 
-                   text-align: center; text-transform: uppercase; letter-spacing: 1px;">
+    <div style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); 
+                border: 2px solid {border_color}; border-radius: 12px; 
+                padding: 1.2rem; color: white; 
+                height: 280px; 
+                display: flex; 
+                flex-direction: column;">
+        <div style="font-size: 1.1rem; font-weight: bold; margin-bottom: 1rem; 
+                   text-align: center; text-transform: uppercase; letter-spacing: 1px; 
+                   color: {header_color}; flex-shrink: 0;">
             {header}
         </div>
-        {content}
+        <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
+            {content}
+        </div>
     </div>
     """
     
     METRIC_ITEM_TEMPLATE = """
-    <div style="display: flex; justify-content: space-between; padding: 0.4rem 0; 
+    <div style="display: flex; justify-content: space-between; 
+               padding: 0.6rem 0; 
                {border_style} color: white;">
-        <span>{icon} {label}</span>
+        <span style="color: {label_color};">{icon} {label}</span>
         <div style="text-align: right;">
-            <div style="font-size: 1.1rem; font-weight: bold;">{value}</div>
-            <div style="font-size: 0.9rem; opacity: 0.8;">{delta}</div>
+            <div style="font-size: 1.1rem; font-weight: bold; color: {value_color};">{value}</div>
+            <div style="font-size: 0.9rem; opacity: 0.8; color: {delta_color};">{delta}</div>
         </div>
     </div>
     """
     
     PERFORMANCE_ITEM_TEMPLATE = """
-    <div style="display: flex; justify-content: space-between; padding: 0.3rem 0; 
-               font-size: 0.95rem; color: white;">
-        <span style="font-weight: 500;">{arrow} {entity}</span>
-        <span style="font-weight: bold;">{change}</span>
+    <div style="display: flex; justify-content: space-between; 
+               padding: 0.5rem 0; 
+               font-size: 0.9rem; color: white;">
+        <span style="font-weight: 500; color: white;">{arrow} {entity}</span>
+        <span style="font-weight: bold; color: {change_color};">{change}</span>
     </div>
     """
     
-    # Color schemes for sections
+    # Updated color schemes for sections with black backgrounds
     SECTION_COLORS = {
-        'status': {'bg_start': '#1e3a8a', 'bg_end': '#1e40af', 'border_color': '#3b82f6'},
-        'improvements': {'bg_start': '#166534', 'bg_end': '#15803d', 'border_color': '#22c55e'},
-        'concerns': {'bg_start': '#991b1b', 'bg_end': '#dc2626', 'border_color': '#ef4444'}
+        'status': {'border_color': '#3b82f6', 'header_color': '#60a5fa'},
+        'improvements': {'border_color': '#22c55e', 'header_color': '#4ade80'},
+        'concerns': {'border_color': '#ef4444', 'header_color': '#f87171'}
     }
     
     def __init__(self, dashboard_type: str, metrics_calculator, map_viz, chart_viz):
@@ -147,38 +188,90 @@ class DashboardUI:
             st.title("🏥 Rwanda Malaria Sectors Dashboard")
             st.markdown("*Track malaria cases, incidence, and trends across Rwanda's sectors*")
     
-    def render_controls_in_main_area(self, data: gpd.GeoDataFrame, entity_options: List[str]) -> Tuple[int, int, str, List[str]]:
-        """Render controls in main content area instead of sidebar"""
+    def render_controls_in_main_area(self, data: gpd.GeoDataFrame, entity_options: List[str]) -> Tuple[int, int, str]:
+        """Render collapsible controls with enhanced styling"""
         
-        # Create a styled container for controls
-        st.markdown('<div class="control-container">', unsafe_allow_html=True)
-        st.markdown("### 🛠️ Dashboard Controls")
+        # Enhanced CSS for better expander styling
+        st.markdown("""
+        <style>
+        /* Custom expander styling */
+        .streamlit-expander {
+            border: 1px solid #3b82f6;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #1e1e1e 0%, #2d2d2d 100%);
+            margin-bottom: 1.5rem;
+        }
         
-        # Create columns for different control groups
-        col1, col2, col3, col4 = st.columns([2, 2, 3, 3])
+        .streamlit-expander > summary {
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+            color: white;
+            padding: 1rem;
+            border-radius: 8px 8px 0 0;
+            font-weight: bold;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+        }
         
-        with col1:
-            st.markdown("**📅 Time Filters**")
-            selected_year, selected_month = self._render_time_controls_main(data)
+        .streamlit-expander > summary:hover {
+            background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+            transform: translateY(-1px);
+        }
         
-        with col2:
-            st.markdown("**📈 Primary Metric**")
-            selected_metric = self._render_metric_selection_main()
+        .streamlit-expander[open] > summary {
+            border-radius: 8px 8px 0 0;
+            margin-bottom: 1rem;
+        }
         
-        with col3:
-            st.markdown("**🔍 Entity Comparison**")
-            selected_entities = self._render_entity_selection_main(entity_options)
+        .streamlit-expander > div {
+            padding: 1rem;
+            background-color: #1e1e1e;
+            border-radius: 0 0 8px 8px;
+        }
         
-        with col4:
-            st.markdown("**📊 Current Selection**")
-            self._render_selection_summary(selected_year, selected_month, selected_metric, len(selected_entities))
+        /* Control section styling */
+        .control-section {
+            background-color: #2a2a2a;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border: 1px solid #444;
+        }
         
-        st.markdown('</div>', unsafe_allow_html=True)
+        .control-section h4 {
+            color: #60a5fa;
+            margin-top: 0;
+            margin-bottom: 0.8rem;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        </style>
+        """, unsafe_allow_html=True)
         
-        # Add some spacing
-        st.markdown("---")
+        # Collapsible controls with enhanced design
+        with st.expander("🛠️ Dashboard Controls & Filters", expanded=False):
+            # Three-column layout for controls
+            col1, col2, col3 = st.columns([1, 1, 1])
+            
+            with col1:
+                st.markdown('<div class="control-section">', unsafe_allow_html=True)
+                st.markdown("#### 📅 Time Period")
+                selected_year, selected_month = self._render_time_controls_main(data)
+                st.markdown('</div>', unsafe_allow_html=True)
+            
+            with col2:
+                st.markdown('<div class="control-section">', unsafe_allow_html=True)
+                st.markdown("#### 📈 Primary Metric")
+                selected_metric = self._render_metric_selection_main()
+                st.markdown('</div>', unsafe_allow_html=True)
+            
+            with col3:
+                st.markdown('<div class="control-section">', unsafe_allow_html=True)
+                st.markdown("#### 📊 Current Selection")
+                self._render_enhanced_selection_summary(selected_year, selected_month, selected_metric)
+                st.markdown('</div>', unsafe_allow_html=True)
         
-        return selected_year, selected_month, selected_metric, selected_entities
+        return selected_year, selected_month, selected_metric
     
     def _render_time_controls_main(self, data: gpd.GeoDataFrame) -> Tuple[int, int]:
         """Render time controls in main area (not sidebar)"""
@@ -252,20 +345,25 @@ class DashboardUI:
             help=f"Select up to 10 {entity_label.lower()} to see their trends over time"
         )
     
-    def _render_selection_summary(self, year: int, month: int, metric: str, num_entities: int):
-        """Render a summary of current selections"""
+    def _render_enhanced_selection_summary(self, year: int, month: int, metric: str):
+        """Enhanced summary with better formatting and fixed height"""
         month_name = self.MONTH_NAMES.get(month, str(month))
-        entity_type = "districts" if self.dashboard_type == "Districts" else "sectors"
-        
-        # Get metric display name
         metric_options = self.metrics_calculator.get_available_metrics()
         metric_display = next((k for k, v in metric_options.items() if v == metric), metric)
         
-        st.info(f"""
-        **Period:** {month_name} {year}  
-        **Metric:** {metric_display}  
-        **Comparing:** {num_entities} {entity_type}
-        """)
+        st.markdown(f"""
+        <div style="background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); 
+                    padding: 1.2rem; border-radius: 8px; color: white; 
+                    text-align: center; height: 120px; display: flex; 
+                    flex-direction: column; justify-content: center;">
+            <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 0.5rem;">
+                📊 {month_name} {year}
+            </div>
+            <div style="font-size: 1rem; opacity: 0.9;">
+                📈 {metric_display}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
     
     def _sync_time_between_tabs(self, key_prefix: str):
         """Synchronize time selection between tabs"""
@@ -277,20 +375,28 @@ class DashboardUI:
             st.session_state[f'{key_prefix}_month'] = st.session_state[f'{other_prefix}_month']
     
     def render_color_coded_overview(self, current_data, previous_data, selected_year: int, selected_month: int, selected_metric: str):
-        """Render color-coded sections: Current Status | Improvements | Concerns"""
+        """Render equal-height color-coded sections using CSS Grid with dynamic sizing"""
         st.markdown(f"### {self.MONTH_NAMES.get(selected_month)} {selected_year} Overview")
         
-        # Three equal columns for color-coded sections
-        status_col, improvements_col, concerns_col = st.columns(3)
+        # Use CSS Grid with dashboard-specific class for dynamic sizing
+        dashboard_class = "districts" if self.dashboard_type == "Districts" else "sectors"
+        st.markdown(f'<div class="overview-container {dashboard_class}">', unsafe_allow_html=True)
         
-        with status_col:
-            self._render_section('status', current_data, previous_data, selected_metric)
+        # Create the three sections
+        status_html = self._render_section_html('status', current_data, previous_data, selected_metric)
+        improvements_html = self._render_section_html('improvements', current_data, previous_data, selected_metric)
+        concerns_html = self._render_section_html('concerns', current_data, previous_data, selected_metric)
         
-        with improvements_col:
-            self._render_section('improvements', current_data, previous_data, selected_metric)
+        # Render all three sections
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown(status_html, unsafe_allow_html=True)
+        with col2:
+            st.markdown(improvements_html, unsafe_allow_html=True)
+        with col3:
+            st.markdown(concerns_html, unsafe_allow_html=True)
         
-        with concerns_col:
-            self._render_section('concerns', current_data, previous_data, selected_metric)
+        st.markdown('</div>', unsafe_allow_html=True)
     
     def render_map_and_top_entities(self, data: gpd.GeoDataFrame, selected_year: int, selected_month: int, selected_metric: str):
         """Render map and top entities charts with maximized map size"""
@@ -304,15 +410,51 @@ class DashboardUI:
             top_entities_fig = self.chart_viz.create_top_entities_chart(data, selected_year, selected_month, selected_metric)
             st.plotly_chart(top_entities_fig, use_container_width=True)
     
-    def render_detailed_analysis(self, data: gpd.GeoDataFrame, selected_entities: List[str], selected_metric: str, selected_year: int, selected_month: int):
-        """Render detailed analysis section without headers"""
+    def render_detailed_analysis(self, data: gpd.GeoDataFrame, selected_metric: str, selected_year: int, selected_month: int):
+        """Render detailed analysis section with dedicated trend filter"""
         col_left, col_right = st.columns([1, 1])
         
         with col_left:
-            self._render_trends_section(data, selected_entities, selected_metric)
+            self._render_trends_section_with_filter(data, selected_metric)
         
         with col_right:
             self._render_priority_analysis(data, selected_year, selected_month)
+    
+    def _render_trends_section_with_filter(self, data: gpd.GeoDataFrame, selected_metric: str):
+        """Render trends section with its own dedicated filter"""
+        entity_type = "Districts" if self.dashboard_type == "Districts" else "Sectors"
+        
+        # Create dedicated trend filter container
+        st.markdown("""
+        <div class="trend-filter-container">
+            <h4>🎯 Trend Analysis Filter</h4>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Get entity options for trend filter
+        if self.dashboard_type == "Sectors" and 'sector_display' in data.columns:
+            entity_options = sorted(data['sector_display'].unique())
+        else:
+            entity_col = 'District' if self.dashboard_type == "Districts" else 'Sector'
+            entity_options = sorted(data[entity_col].unique())
+        
+        # Dedicated trend filter (separate from main controls)
+        trend_entities = st.multiselect(
+            f"Select {entity_type} for Trend Analysis",
+            entity_options,
+            default=[],
+            key=f"trend_filter_{self.dashboard_type.lower()}",
+            max_selections=8,
+            help=f"Choose {entity_type.lower()} to compare their trends over time (separate from main dashboard filters)"
+        )
+        
+        # Render trend chart
+        if trend_entities:
+            trend_fig = self.chart_viz.create_trend_chart(data, trend_entities, selected_metric)
+            if trend_fig:
+                st.plotly_chart(trend_fig, use_container_width=True)
+        else:
+            st.info(f"👆 Select {entity_type.lower()} above to view their trends over time")
     
     # === PRIVATE HELPER METHODS ===
     
@@ -326,7 +468,13 @@ class DashboardUI:
             total_population = data['Population'].sum()
             incidence = (total_cases / total_population * 1000) if total_population > 0 else 0
             severe_cases = data['Severe cases/Deaths'].sum()
-            return {'total_cases': total_cases, 'incidence': incidence, 'severe_cases': severe_cases}
+            avg_population = data['Population'].mean()
+            return {
+                'total_cases': total_cases, 
+                'incidence': incidence, 
+                'severe_cases': severe_cases,
+               # 'avg_population': avg_population
+            }
         else:
             simple_cases = data['Simple malaria cases'].sum()
             total_population = data['Population'].sum()
@@ -334,7 +482,7 @@ class DashboardUI:
             return {'simple_cases': simple_cases, 'incidence': incidence}
     
     def _calculate_delta(self, current_metrics: dict, previous_metrics: dict, key: str, fmt: str) -> str:
-        """Calculate delta between current and previous metrics"""
+        """Calculate delta between current and previous metrics with color coding"""
         if not previous_metrics:
             return ""
         
@@ -342,61 +490,92 @@ class DashboardUI:
         previous_val = previous_metrics.get(key, 0)
         change = current_val - previous_val
         
-        # Fix the formatting logic
+        # Format the change value
         if fmt == ":,.0f":
-            return f"Δ {'+' if change >= 0 else ''}{change:,.0f}"
+            formatted_change = f"{'+' if change >= 0 else ''}{change:,.0f}"
         elif fmt == ":.1f":
-            return f"Δ {'+' if change >= 0 else ''}{change:.1f}"
+            formatted_change = f"{'+' if change >= 0 else ''}{change:.1f}"
         else:
-            return f"Δ {'+' if change >= 0 else ''}{change:.1f}"
+            formatted_change = f"{'+' if change >= 0 else ''}{change:.1f}"
+        
+        return f"Δ {formatted_change}"
     
-    def _render_section(self, section_type: str, current_data, previous_data, selected_metric: str):
-        """Universal method to render any color-coded section"""
+    def _get_delta_color(self, current_metrics: dict, previous_metrics: dict, key: str, metric_type: str) -> str:
+        """Get color for delta based on whether increase/decrease is good or bad"""
+        if not previous_metrics:
+            return "#ffffff"
+        
+        current_val = current_metrics.get(key, 0)
+        previous_val = previous_metrics.get(key, 0)
+        change = current_val - previous_val
+        
+        # For malaria metrics, decreases are generally good (green), increases are bad (red)
+        if change < 0:
+            return "#22c55e"  # Green for decrease (good)
+        elif change > 0:
+            return "#ef4444"  # Red for increase (bad)
+        else:
+            return "#ffffff"  # White for no change
+    
+    def _render_section_html(self, section_type: str, current_data, previous_data, selected_metric: str) -> str:
+        """Generate HTML for a section (for use with CSS Grid) - Updated titles for TOP 4"""
         colors = self.SECTION_COLORS[section_type]
         
         if section_type == 'status':
             header = "🔵 CURRENT STATUS"
             content = self._build_status_content(current_data, previous_data)
         elif section_type == 'improvements':
-            header = "🟢 TOP 3 IMPROVEMENTS" 
+            header = "🟢 TOP 4 MOST IMPROVED"  # Updated to TOP 4
             content = self._build_performance_content(current_data, previous_data, selected_metric, 'improvements')
         else:  # concerns
-            header = "🔴 TOP 3 CONCERNS"
+            header = "🔴 TOP 4 CONCERNS"  # Updated to TOP 4
             content = self._build_performance_content(current_data, previous_data, selected_metric, 'concerns')
         
-        section_html = self.SECTION_TEMPLATE.format(
-            bg_start=colors['bg_start'], bg_end=colors['bg_end'], 
-            border_color=colors['border_color'], header=header, content=content
+        return self.SECTION_TEMPLATE.format(
+            border_color=colors['border_color'], 
+            header_color=colors['header_color'],
+            header=header, 
+            content=content
         )
-        
-        st.markdown(section_html, unsafe_allow_html=True)
     
     def _build_status_content(self, current_data, previous_data) -> str:
-        """Build content for status section"""
+        """Build content for status section with color-coded elements and consistent spacing"""
         current_metrics = self._calculate_overview_metrics(current_data)
         previous_metrics = self._calculate_overview_metrics(previous_data)
         
         content = ""
         
         if self.dashboard_type == "Districts":
+            # 4 metrics for districts - keep equal box sizes
             metrics_config = [
-                ("🦟", "Total Cases", "total_cases", ":,.0f"),
-                ("📈", "Incidence", "incidence", ":.1f"),
-                ("⚠️", "Severe Cases", "severe_cases", ":,.0f")
+                ("🦟", "Total Cases", "total_cases", ":,.0f", "#ff6b6b"),
+                ("📈", "Incidence", "incidence", ":.1f", "#4ecdc4"),
+                ("⚠️", "Severe Cases", "severe_cases", ":,.0f", "#ff8c42"),
+                ("📊", "Avg Population", "avg_population", ":,.0f", "#95a5a6")
             ]
         else:
+            # Only 2 metrics for sectors - removed population completely
             metrics_config = [
-                ("🦟", "Simple Cases", "simple_cases", ":,.0f"),
-                ("📊", "Incidence", "incidence", ":.1f")
+                ("🦟", "Simple Cases", "simple_cases", ":,.0f", "#ff6b6b"),
+                ("📊", "Incidence", "incidence", ":.1f", "#4ecdc4")
             ]
         
-        for i, (icon, label, key, fmt) in enumerate(metrics_config):
+        for i, (icon, label, key, fmt, value_color) in enumerate(metrics_config):
             current_val = current_metrics.get(key, 0) if current_metrics else 0
-            delta = self._calculate_delta(current_metrics, previous_metrics, key, fmt)
             
-            border_style = "border-bottom: 1px solid rgba(255,255,255,0.2);" if i < len(metrics_config) - 1 else ""
+            # Handle average population for districts
+            if key == "avg_population":
+                current_val = current_data['Population'].mean() if current_data is not None and not current_data.empty else 0
+                delta = ""  # No delta for average population
+                delta_color = "#ffffff"
+            else:
+                delta = self._calculate_delta(current_metrics, previous_metrics, key, fmt)
+                delta_color = self._get_delta_color(current_metrics, previous_metrics, key, key)
             
-            # Fix the formatting issue
+            # No border for last item
+            border_style = "" if i == len(metrics_config) - 1 else "border-bottom: 1px solid rgba(255,255,255,0.1);"
+            
+            # Format the value
             if fmt == ":,.0f":
                 formatted_value = f"{current_val:,.0f}"
             elif fmt == ":.1f":
@@ -406,38 +585,43 @@ class DashboardUI:
             
             content += self.METRIC_ITEM_TEMPLATE.format(
                 icon=icon, label=label, value=formatted_value,
-                delta=delta, border_style=border_style
+                delta=delta, border_style=border_style,
+                label_color="#ffffff", value_color=value_color, delta_color=delta_color
             )
         
         return content
     
     def _build_performance_content(self, current_data, previous_data, selected_metric: str, performance_type: str) -> str:
-        """Build content for performance sections"""
+        """Build content for performance sections with color-coded changes - TOP 4 instead of TOP 3"""
         if previous_data is None or previous_data.empty or current_data.empty:
             return '<div style="text-align: center; opacity: 0.7; color: white;">No comparison data</div>'
         
         performance_data = self._get_performance_data(current_data, previous_data, selected_metric, performance_type)
         
         if performance_data.empty:
-            message = "No improvements detected" if performance_type == 'improvements' else "No concerns detected"
+            message = "No improvements vs last month" if performance_type == 'improvements' else "No concerns vs last month"
             return f'<div style="text-align: center; opacity: 0.7; color: white;">{message}</div>'
         
         content = ""
         arrow = "↓" if performance_type == 'improvements' else "↑"
-        sign = "-" if performance_type == 'improvements' else "+"
+        change_color = "#22c55e" if performance_type == 'improvements' else "#ef4444"
         
-        for _, row in performance_data.iterrows():
+        # Take TOP 4 instead of TOP 3
+        for _, row in performance_data.head(4).iterrows():  # Changed from default to head(4)
             change = abs(row['absolute_change']) if performance_type == 'improvements' else row['absolute_change']
             entity_name = row['entity'][:17] + "..." if len(row['entity']) > 20 else row['entity']
+            sign = "-" if performance_type == 'improvements' else "+"
             
             content += self.PERFORMANCE_ITEM_TEMPLATE.format(
-                arrow=arrow, entity=entity_name, change=f"{sign}{change:.0f}"
+                arrow=arrow, entity=entity_name, 
+                change=f"{sign}{change:.0f}",
+                change_color=change_color
             )
         
         return content
     
     def _get_performance_data(self, current_data, previous_data, selected_metric: str, performance_type: str):
-        """Get performance data for improvements or concerns"""
+        """Get performance data for improvements or concerns - returns TOP 4"""
         entity_col = 'District' if self.dashboard_type == "Districts" else 'Sector'
         
         # Prepare data based on dashboard type
@@ -456,21 +640,11 @@ class DashboardUI:
         comparison['absolute_change'] = comparison['current_value'] - comparison['previous_value']
         comparison = comparison[comparison['absolute_change'] != 0]
         
-        # Return top 3 based on performance type
+        # Return top 4 based on performance type (changed from 3 to 4)
         if performance_type == 'improvements':
-            return comparison.nsmallest(3, 'absolute_change')
+            return comparison.nsmallest(4, 'absolute_change')  # Changed from 3 to 4
         else:
-            return comparison.nlargest(3, 'absolute_change')
-    
-    def _render_trends_section(self, data: gpd.GeoDataFrame, selected_entities: List[str], selected_metric: str):
-        """Render trends over time section without header"""
-        if selected_entities:
-            trend_fig = self.chart_viz.create_trend_chart(data, selected_entities, selected_metric)
-            if trend_fig:
-                st.plotly_chart(trend_fig, use_container_width=True)
-        else:
-            entity_type = "districts" if self.dashboard_type == "Districts" else "sectors"
-            st.info(f"👈 Select {entity_type} from the controls above to view trends over time")
+            return comparison.nlargest(4, 'absolute_change')   # Changed from 3 to 4
     
     def _render_priority_analysis(self, data: gpd.GeoDataFrame, selected_year: int, selected_month: int):
         """Render priority analysis section without header"""
@@ -569,8 +743,8 @@ class MainDashboard:
         # Render header
         ui.render_header()
         
-        # Render controls in MAIN AREA instead of sidebar
-        selected_year, selected_month, selected_metric, selected_entities = ui.render_controls_in_main_area(data, entity_options)
+        # Render controls in MAIN AREA instead of sidebar (entity selection removed)
+        selected_year, selected_month, selected_metric = ui.render_controls_in_main_area(data, entity_options)
         
         # Filter data by year and month for maps and top charts
         filtered_data = data[(data['year'] == selected_year) & (data['month'] == selected_month)]
@@ -599,7 +773,7 @@ class MainDashboard:
         ui.render_map_and_top_entities(filtered_data, selected_year, selected_month, selected_metric)
         
         # Third Row: Detailed analysis (using all data for trends, current month for scatterplot)
-        ui.render_detailed_analysis(data, selected_entities, selected_metric, selected_year, selected_month)
+        ui.render_detailed_analysis(data, selected_metric, selected_year, selected_month)
 
 # Main execution
 def main():
