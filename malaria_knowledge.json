@@ -1,0 +1,20 @@
+[
+  {
+    "title": "WHO Malaria Treatment Guidelines",
+    "content": "\n                First-line treatment for uncomplicated malaria:\n                - Artemisinin-based combination therapies (ACTs)\n                - Artemether-lumefantrine\n                - Artesunate-amodiaquine\n                \n                Severe malaria treatment:\n                - IV Artesunate (first choice)\n                - Quinine if artesunate unavailable\n                \n                Prevention strategies:\n                - Long-lasting insecticidal nets (LLINs)\n                - Indoor residual spraying (IRS)\n                - Seasonal malaria chemoprevention (SMC)\n                ",
+    "source": "WHO",
+    "category": "treatment"
+  },
+  {
+    "title": "Rwanda Malaria Interventions",
+    "content": "\n                Key interventions for Rwanda:\n                - Community case management\n                - Mass distribution of bed nets\n                - Indoor residual spraying in high-risk areas\n                - Seasonal malaria chemoprevention in children\n                - Intermittent preventive treatment in pregnancy\n                \n                High-risk areas:\n                - Eastern Province (especially during rainy season)\n                - Southern Province lowlands\n                - Areas near wetlands and rice paddies\n                ",
+    "source": "Rwanda MOH",
+    "category": "interventions"
+  },
+  {
+    "title": "Supply Chain Management",
+    "content": "\n                Essential medicines to stock:\n                - Artemether-lumefantrine (AL) tablets\n                - Artesunate injection\n                - RDT test kits\n                - Severe malaria treatment drugs\n                \n                Stock management:\n                - Maintain 3-month buffer stock\n                - Monitor expiry dates quarterly\n                - Prioritize high-burden districts\n                - Emergency procurement protocols\n                ",
+    "source": "Supply Chain Guidelines",
+    "category": "supply_chain"
+  }
+]
